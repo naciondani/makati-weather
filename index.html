@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Makati Weather</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                     Roboto, Helvetica, Arial, sans-serif;
+        background: transparent;
+        color: #4b4650;
+    }
+
+    .weather-card {
+        width: 100%;
+        max-width: 650px;
+        margin: auto;
+        padding: 22px;
+        border-radius: 24px;
+        background: rgba(255, 250, 252, 0.96);
+        border: 1px solid rgba(220, 190, 205, 0.35);
+        box-shadow: 0 8px 30px rgba(100, 80, 90, 0.10);
+    }
+
+    .location {
+        font-size: 14px;
+        color: #8c7d87;
+        margin-bottom: 4px;
+    }
+
+    .location strong {
+        color: #5c5360;
+        font-size: 18px;
+    }
+
+    .updated {
+        font-size: 11px;
+        color: #aaa0a8;
+        margin-top: 4px;
+    }
+
+    .current {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 20px;
+        gap: 15px;
+    }
+
+    .temperature {
+        font-size: 58px;
+        font-weight: 600;
+        line-height: 1;
+        color: #514954;
+    }
+
+    .condition {
+        font-size: 15px;
+        color: #81737d;
+        margin-top: 7px;
+    }
+
+    .weather-icon {
+        font-size: 64px;
+    }
+
+    .details {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 22px;
+    }
+
+    .detail {
+        background: #f8f0f4;
+        border-radius: 16px;
+        padding: 12px;
+        text-align: center;
+    }
+
+    .detail-icon {
+        font-size: 18px;
+    }
+
+    .detail-label {
+        font-size: 10px;
+        color: #a0939c;
+        margin-top: 4px;
+    }
+
+    .detail-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: #5d555e;
+        margin-top: 2px;
+    }
+
+    .section-title {
+        margin-top: 24px;
+        margin-bottom: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #756873;
+    }
+
+    .forecast {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 7px;
+    }
+
+    .day {
+        background: #fbf6f8;
+        border-radius: 15px;
+        padding: 10px 5px;
+        text-align: center;
+    }
+
+    .day-name {
+        font-size: 11px;
+        font-weight: 600;
+        color: #786b74;
+    }
+
+    .day-icon {
+        font-size: 25px;
+        margin: 7px 0;
+    }
+
+    .day-temp {
+        font-size: 11px;
+        color: #5d555e;
+    }
+
+    .rain {
+        font-size: 9px;
+        color: #a28795;
+        margin-top: 4px;
+    }
+
+    .sun {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+        padding: 11px 14px;
+        border-radius: 15px;
+        background: #f9f3ed;
+        font-size: 11px;
+        color: #7b6d68;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 30px;
+        color: #988c95;
+        font-size: 13px;
+    }
+
+    .error {
+        text-align: center;
+        padding: 25px;
+        color: #9b777f;
+        font-size: 13px;
+    }
+
+    @media (max-width: 500px) {
+
+        .weather-card {
+            padding: 17px;
+            border-radius: 20px;
+        }
+
+        .temperature {
+            font-size: 48px;
+        }
+
+        .weather-icon {
+            font-size: 50px;
+        }
+
+        .details {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .forecast {
+            gap: 4px;
+        }
+
+        .day {
+            padding: 8px 3px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="weather-card" id="weather">
+
+    <div class="loading">
+        Loading Makati weather...
+    </div>
+
+</div>
+
+<script>
+
+const LATITUDE = 14.5547;
+const LONGITUDE = 121.0244;
+
+const API =
+`https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&timezone=Asia%2FManila&forecast_days=5`;
+
+
+// Weather descriptions and icons
+function weatherInfo(code) {
+
+    if (code === 0)
+        return ["Clear sky", "☀️"];
+
+    if (code === 1)
+        return ["Mainly clear", "🌤️"];
+
+    if (code === 2)
+        return ["Partly cloudy", "⛅"];
+
+    if (code === 3)
+        return ["Overcast", "☁️"];
+
+    if ([45, 48].includes(code))
+        return ["Foggy", "🌫️"];
+
+    if ([51, 53, 55].includes(code))
+        return ["Drizzle", "🌦️"];
+
+    if ([61, 63, 65].includes(code))
+        return ["Rain", "🌧️"];
+
+    if ([66, 67].includes(code))
+        return ["Freezing rain", "🌧️"];
+
+    if ([71, 73, 75, 77].includes(code))
+        return ["Snow", "❄️"];
+
+    if ([80, 81, 82].includes(code))
+        return ["Rain showers", "🌦️"];
+
+    if ([95].includes(code))
+        return ["Thunderstorm", "⛈️"];
+
+    if ([96, 99].includes(code))
+        return ["Thunderstorm", "⛈️"];
+
+    return ["Unknown", "🌤️"];
+}
+
+
+// Format time
+function formatTime(time) {
+
+    const date = new Date(time);
+
+    return date.toLocaleTimeString("en-PH", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+    });
+}
+
+
+// Format day
+function formatDay(dateString, index) {
+
+    if (index === 0)
+        return "Today";
+
+    const date = new Date(dateString + "T12:00:00");
+
+    return date.toLocaleDateString("en-PH", {
+        weekday: "short"
+    });
+}
+
+
+// Load weather
+async function loadWeather() {
+
+    const container = document.getElementById("weather");
+
+    try {
+
+        const response = await fetch(API);
+
+        if (!response.ok)
+            throw new Error("Weather unavailable");
+
+        const data = await response.json();
+
+        const current = data.current;
+        const daily = data.daily;
+
+        const info = weatherInfo(current.weather_code);
+
+        let forecastHTML = "";
+
+        for (let i = 0; i < 5; i++) {
+
+            const forecastInfo =
+                weatherInfo(daily.weather_code[i]);
+
+            forecastHTML += `
+                <div class="day">
+
+                    <div class="day-name">
+                        ${formatDay(daily.time[i], i)}
+                    </div>
+
+                    <div class="day-icon">
+                        ${forecastInfo[1]}
+                    </div>
+
+                    <div class="day-temp">
+                        ${Math.round(daily.temperature_2m_max[i])}°
+                        /
+                        ${Math.round(daily.temperature_2m_min[i])}°
+                    </div>
+
+                    <div class="rain">
+                        🌧️ ${daily.precipitation_probability_max[i]}%
+                    </div>
+
+                </div>
+            `;
+        }
+
+
+        container.innerHTML = `
+
+            <div class="location">
+                📍 <strong>Makati City</strong>
+                <div class="updated">
+                    Philippines · Updated just now
+                </div>
+            </div>
+
+
+            <div class="current">
+
+                <div>
+
+                    <div class="temperature">
+                        ${Math.round(current.temperature_2m)}°C
+                    </div>
+
+                    <div class="condition">
+                        ${info[0]}
+                    </div>
+
+                </div>
+
+                <div class="weather-icon">
+                    ${info[1]}
+                </div>
+
+            </div>
+
+
+            <div class="details">
+
+                <div class="detail">
+
+                    <div class="detail-icon">🌡️</div>
+
+                    <div class="detail-label">
+                        FEELS LIKE
+                    </div>
+
+                    <div class="detail-value">
+                        ${Math.round(current.apparent_temperature)}°C
+                    </div>
+
+                </div>
+
+
+                <div class="detail">
+
+                    <div class="detail-icon">💧</div>
+
+                    <div class="detail-label">
+                        HUMIDITY
+                    </div>
+
+                    <div class="detail-value">
+                        ${current.relative_humidity_2m}%
+                    </div>
+
+                </div>
+
+
+                <div class="detail">
+
+                    <div class="detail-icon">💨</div>
+
+                    <div class="detail-label">
+                        WIND
+                    </div>
+
+                    <div class="detail-value">
+                        ${Math.round(current.wind_speed_10m)} km/h
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="section-title">
+                5-DAY FORECAST
+            </div>
+
+            <div class="forecast">
+                ${forecastHTML}
+            </div>
+
+
+            <div class="sun">
+
+                <span>
+                    🌅 Sunrise
+                    ${formatTime(daily.sunrise[0])}
+                </span>
+
+                <span>
+                    🌇 Sunset
+                    ${formatTime(daily.sunset[0])}
+                </span>
+
+            </div>
+
+        `;
+
+    }
+
+    catch (error) {
+
+        container.innerHTML = `
+            <div class="error">
+                ☁️ Weather couldn't load right now.<br>
+                Please refresh the page.
+            </div>
+        `;
+
+    }
+
+}
+
+
+// Load immediately
+loadWeather();
+
+
+// Refresh every 30 minutes
+setInterval(loadWeather, 30 * 60 * 1000);
+
+</script>
+
+</body>
+</html>
